@@ -9,15 +9,18 @@ package com;
 
 import com.timeseries.TimeSeries;
 import com.dtw.TimeWarpInfo;
+
+import evaluate.DTWClassifier;
+
 import java.io.FileNotFoundException;
 import java.text.DecimalFormat;
-import Training.TrainingSignature;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
-import Evaluate.DTWClassifier;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
+
+import training.TrainingSignature;
 
 
 /**

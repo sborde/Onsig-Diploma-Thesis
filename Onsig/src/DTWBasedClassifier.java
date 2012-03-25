@@ -1,14 +1,15 @@
 
-import Evaluate.DTWClassifier;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import Training.TrainingSignature;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
+
+import evaluate.DTWClassifier;
 import signature.Signature;
+import training.TrainingSignature;
 
 /**
  * Improved DTW algoritmust használó aláírás

@@ -10,15 +10,15 @@ import matplotlib.pyplot as plt
 from numpy import array, append, std, mean
 
 # Do we want to show pressure values?
-#PRESSURE=False
-PRESSURE=True
+PRESSURE=False
+#PRESSURE=True
 
 # Data path
 F = "../data/"
 
 # Save path
-#SPATH="../plots/regular/"
-SPATH="../plots/pressure/"
+SPATH="../plots/regular/"
+#SPATH="../plots/pressure/"
 
 def normalize(x):
   """Mean normalization of a vector."""
@@ -39,9 +39,11 @@ def plotfile(dataset, datafile, fname):
   with open(fname) as f:
     for line in f:
       w = line.split()
-      x = append(x, int(w[0]))
-      y = append(y, int(w[1]))
-      z = append(z, int(w[2]))
+      if w[2] == "0.0" :
+      	continue;
+      x = append(x, float(w[0]))
+      y = append(y, float(w[1]))
+      z = append(z, float(w[2]))
 
   # Labels.
   plt.xlabel('X')
@@ -62,15 +64,18 @@ def plotfile(dataset, datafile, fname):
 
 
 # dataset in ['genuine', 'forgery']
-for dataset in os.listdir(F):
-  datadir = F + dataset + "/"
-  # We'll need this directory for results, create it if it does not exists.
-  if not os.path.exists(SPATH + dataset):
-    os.mkdir(SPATH + dataset)
-  # For each file in the dataset.
-  for datafile in os.listdir(datadir):
-    fname = datadir + datafile
-    # Plot the file.
-    plotfile(dataset, datafile, fname)
+#for dataset in os.listdir(F):
+dataset = "resampled"
+
+datadir = F + dataset + "/"
+print dataset
+# We'll need this directory for results, create it if it does not exists.
+if not os.path.exists(SPATH + dataset):
+	os.mkdir(SPATH + dataset)
+# For each file in the dataset.
+for datafile in os.listdir(datadir):
+	fname = datadir + datafile
+	# Plot the file.
+	plotfile(dataset, datafile, fname)
 #    break
 #  break

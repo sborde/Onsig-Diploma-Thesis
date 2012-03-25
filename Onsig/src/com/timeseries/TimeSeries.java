@@ -60,6 +60,7 @@ public class TimeSeries
       labels = new ArrayList(origTS.labels);
       timeReadings = new ArrayList(origTS.timeReadings);
       tsArray = new ArrayList(origTS.tsArray);
+      copy(origTS);
    }
 
 
@@ -225,7 +226,20 @@ public class TimeSeries
       }  // end try block
    }  // end constructor
 
-
+   /**
+    * Time serie copy constructor. 
+    * @param ts original timeserie
+    */
+   public void copy(TimeSeries ts) {
+	   for ( String s : (ArrayList<String>)ts.getLabels() ) 
+		   this.labels.add(s);
+	   
+	   for ( int i = 0 ; i < ts.numOfPts() ; i++ ) 
+		   this.timeReadings.add(ts.getTimeAtNthPoint(i));
+	   
+	   for ( int i = 0 ; i < ts.numOfPts() ; i++ )
+		   addLast(i, new TimeSeriesPoint(ts.getMeasurementVector(i)));
+   }
 
    // FUNCTIONS
    public void save(File outFile) throws IOException
