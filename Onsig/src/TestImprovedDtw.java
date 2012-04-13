@@ -27,12 +27,12 @@ public class TestImprovedDtw {
 	/**
 	 * Felhasználandó oszlopok sorszámai.
 	 */
-	public static int []cols = {3,4,5,9,10,11};
+	public static int []cols = {3,4,5};
 	
 	/**
 	 * Az egyes koordináták súlyai.
 	 */
-	public static double []weights = {1,1,1,1,1,1};
+	public static double []weights;
 	
 	public static String baseDir;
 	
@@ -98,99 +98,191 @@ public class TestImprovedDtw {
 		return count;		
 	}
 	
+	private static void normalizeCoordWeights() {
+		double sum = 0.0;
+		for ( int i = 0 ; i < weights.length ; i++ )
+			sum += weights[i];
+		
+		for ( int i = 0 ; i < weights.length ; i++ )
+			weights[i] /= sum;
+		
+	}
+	
 	public static void main(String args[]) {
+		
+		weights = new double[3];
 		
 		if ( args.length == 0 ) 
 			baseDir = "..";
 		else
 			baseDir = args[0];
 		
-		double k = 2;	//a k paraméter kezdő értéke
+		double k = 2.0;	//a k paraméter kezdő értéke
+		double w = -100.0; //a w súly értéke alapból
+		double kStep = 0.1;
 		double lastK = k;
-		double step = 0.1;
+		double wStep = 100.0;
+		double startK = 5.1; 
+		
+		String testTitle = "";
+		String fileName = "";
+		String dirName = "./results-long";
+		
 		while (true) {
-			int FRR = 0;
-			int FAR = 0;
-			int posTestNumber = 0;
-			int negTestNumber = 0;
+			w += wStep;	//léptetjük a w-t
+			//w = 1000.0;
+			//w = (Math.round(w*100)/100.0);	//hogy ne legyen nagyon sok tizedesjegy
 			
-			//vizsgáljuk meg az összes aláírót
-			for ( int i = 1 ; i <= 16 ; i++ ) {
-				
-				String userId = "0" + i;
-				if ( i < 10 )
-					userId = "0" + userId;
-	
-				int numberOfSignatures = getSignaturesNumber(userId);
-				if ( numberOfSignatures == 0 ) {
-					//System.out.println("Nincs " + userId + " azonosítójú aláírónk, tovább...");
-					continue;
-				}
-	
-				int numberOfTrainingSet = numberOfSignatures / testSetRate;
-				
-				/*System.out.println(testSetRate + " részre osztjuk a " + (i+1) + ". aláíró valós aláírások halmazát, tehát egy halmazba a " + 
-								numberOfSignatures + " db. aláírásbó " + numberOfTrainingSet + " db. kerül");*/
-				
-				ArrayList<Signature> forgery = readUserForgedSignatures(userId);	//az aktuálisan vizsgált személy hamisításai
-				
-				//k jelöli, hogy most épp hanyadik tesztelést hajtjuk végre
-				for ( int l = 0 ; l < testSetRate ; l++ ) {
-					//System.out.println((k+1) + " tanítás.");
-					ArrayList<Signature> usersSig = readUserValidSignatures(userId);
-					
-					ImprovedTrainingSet train = new ImprovedTrainingSet(weights);	//teszthalmaz létrehozása
-					
-					ArrayList<Signature> test = new ArrayList<Signature>();	//teszt aláírások gyűjtőhelye
-					for ( int j = 0 ; j < usersSig.size() ; j++ ) {
-						Signature s = usersSig.get(j);
-						s.reset();	//visszaállítjuk mindig az eredeti állapotra az aláírást
-						if ( j < l*numberOfTrainingSet || j >= (l+1)*numberOfTrainingSet ) {
-							//System.out.println(s.getFileName());
-							train.addSignature(s);
-						} else {
-							test.add(s);
-						}
-					}
-					
-					train.makeTemplates();
-					FastDTWClassifier classifier = new FastDTWClassifier(train);
-					
-					for ( Signature ts : test ) {
-						posTestNumber++;
-						boolean decision = classifier.classify(ts, k);
-						//System.out.println(decision);
-						if ( !decision )
-							FRR++;
-					}
-					for ( Signature ts : forgery ) {
-						negTestNumber++;
-						boolean decision = classifier.classify(ts, k);
-						
-						if ( decision )
-							FAR++;
-					}
-				}
+			if ( w > 1500.0 ) {
+				System.out.println("Vége.");
+				break;
 			}
 			
-			double frr = (FRR*100/(double)posTestNumber);
-			double far = (FAR*100/(double)negTestNumber);
-			System.out.println(k + " " + (FRR*100/(double)posTestNumber) + " " + (FAR*100/(double)negTestNumber));
+			//weights[0] = weights[1] = w;
+			//weights[2] = (3-2*w);
+			weights[0] = weights[1] = 1.0;
+			weights[2] = w;
 			
-			if ( frr == far )
-				break;
-			if ( k == 0 )
-				break;
+			fileName = "_w_"+w;
+			testTitle = "Elso_derivalt_zsuly_"+w;
 			
-			//if ( frr < far ) {
-				lastK = k;
-				k -= step;
-			//} else {
-				//step /= 2;
-				//k += step;
-			//}
-			//System.out.println("Összesen " + posTestNumber + " helyes esetből " + FRR + " esetben hibázott. Ez " + (FRR*100/(double)posTestNumber) + "% eredmény.");
-			//System.out.println("Összesen " + negTestNumber + " hamis esetből " + FAR + " esetben hibázott. Ez " + (FAR*100/(double)negTestNumber) + "% eredmény.");
+			//normalizeCoordWeights();
+			
+			k = startK;
+			
+			System.out.println("Súlyok: [" + weights[0] + "," + weights[1] + "," + weights[2] + "]");
+			
+			try {
+				PrintWriter pw1 = new PrintWriter(new FileOutputStream(dirName+"/eer"+fileName+".txt"));
+				PrintWriter pw2 = new PrintWriter(new FileOutputStream(dirName+"/roc"+fileName+".txt"));
+				
+				PrintWriter dpw = new PrintWriter(new FileOutputStream("./distances.txt", true));
+				dpw.println("[" + weights[0] + "," + weights[1] + "," + weights[2] + "]");
+				dpw.flush();
+				dpw.close();
+				
+				pw1.println(testTitle);
+				pw2.println(testTitle);
+				
+				while (true) {
+					int FRR = 0;
+					int FAR = 0;
+					int posTestNumber = 0;
+					int negTestNumber = 0;
+					
+					int tp = 0;
+					int tn = 0;
+					int fp = 0;
+					int fn = 0;
+					
+					k -= kStep;	//léptetjük a k-t
+					k = (Math.round(k*100)/100.0);	//hogy ne legyen nagyon sok tizedesjegy
+					
+					if ( k < 0.0 )
+						break;
+
+					//vizsgáljuk meg az összes aláírót
+					//for ( int i = 1 ; i <= 16 ; i++ ) {
+					int i = 1;
+						
+						String userId = "0" + i;
+						if ( i < 10 )
+							userId = "0" + userId;
+			
+						int numberOfSignatures = getSignaturesNumber(userId);
+						if ( numberOfSignatures == 0 ) 
+							continue;
+						
+			
+						int numberOfTrainingSet = numberOfSignatures / testSetRate;
+						
+						/*System.out.println(testSetRate + " részre osztjuk a " + (i+1) + ". aláíró valós aláírások halmazát, tehát egy halmazba a " + 
+										numberOfSignatures + " db. aláírásbó " + numberOfTrainingSet + " db. kerül");*/
+						
+						ArrayList<Signature> forgery = readUserForgedSignatures(userId);	//az aktuálisan vizsgált személy hamisításai
+						
+						//l jelöli, hogy most épp hanyadik tesztelést hajtjuk végre
+						for ( int l = 0 ; l < testSetRate ; l++ ) {
+							//System.out.println((k+1) + " tanítás.");
+							ArrayList<Signature> usersSig = readUserValidSignatures(userId);
+							
+							ImprovedTrainingSet train = new ImprovedTrainingSet(weights);	//teszthalmaz létrehozása
+							
+							ArrayList<Signature> test = new ArrayList<Signature>();	//teszt aláírások gyűjtőhelye
+							for ( int j = 0 ; j < usersSig.size() ; j++ ) {
+								Signature s = usersSig.get(j);
+								s.reset();	//visszaállítjuk mindig az eredeti állapotra az aláírást
+								if ( j < l*numberOfTrainingSet || j >= (l+1)*numberOfTrainingSet ) {
+									
+									train.addSignature(s);
+								} else {
+									test.add(s);
+								}
+							}
+							
+							train.makeTemplates();
+							
+							dpw.println(train.getAverageDistance() + " " + train.getDistanceDeviation());
+							dpw.flush();
+							
+							FastDTWClassifier classifier = new FastDTWClassifier(train);
+							
+							for ( Signature ts : test ) {
+								posTestNumber++;
+								boolean decision = classifier.classify(ts, k);
+								if ( !decision ) {
+									FRR++;
+									fn++;
+								} else {
+									tp++;
+								}
+							}
+							for ( Signature ts : forgery ) {
+								negTestNumber++;
+								boolean decision = classifier.classify(ts, k);
+								
+								if ( decision ) {
+									FAR++;
+									fp++;
+								} else {
+									tn++;
+								}
+							}
+						}
+					//}
+					
+					//double frr = (FRR*100/(double)posTestNumber);
+					//double far = (FAR*100/(double)negTestNumber);
+					double frr = (double)fn / (fn+tp);
+					double far = (double)fp / (fp+tn);
+					//System.out.println(k + " " + (FRR*100/(double)posTestNumber) + " " + (FAR*100/(double)negTestNumber));
+					
+					pw1.println(k + " " + frr + " " + far);
+					pw2.println(k + " " + ((double)tp/(tp+fn)) + " " + ((double)fp/(tn+fp)));
+		
+					pw1.flush();
+					pw2.flush();
+					
+					//if ( frr == far )
+					//	break;
+					
+
+					
+					//if ( frr < far ) {
+
+					//} else {
+						//step /= 2;
+						//k += step;
+					//}
+					//System.out.println("Összesen " + posTestNumber + " helyes esetből " + FRR + " esetben hibázott. Ez " + (FRR*100/(double)posTestNumber) + "% eredmény.");
+					//System.out.println("Összesen " + negTestNumber + " hamis esetből " + FAR + " esetben hibázott. Ez " + (FAR*100/(double)negTestNumber) + "% eredmény.");
+				
+				}
+				pw1.close();
+				pw2.close();
+			} catch (IOException e ){
+				e.printStackTrace();
+			}
 		}
 	}
 	

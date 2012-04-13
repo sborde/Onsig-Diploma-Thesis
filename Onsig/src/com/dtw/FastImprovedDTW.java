@@ -62,7 +62,7 @@ public class FastImprovedDTW
       if ( (tsI.size() <= minTSsize) || (tsJ.size()<=minTSsize) )
       {
          // Perform full Dynamic Time Warping.
-         return DTW.getWarpInfoBetween(tsI, tsJ);
+         return ImprovedDTW.getWarpInfoBetween(tsI, tsJ, weights);
       }
       else
       {

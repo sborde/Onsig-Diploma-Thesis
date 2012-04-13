@@ -56,9 +56,9 @@ public class ImprovedDTW
       final int maxJ = tsJ.size()-1;
 
       // Calculate the values for the first column, from the bottom up.
-      currCol[0] = pointWeights[0]*euclideanDist(tsI.getMeasurementVector(0), tsJ.getMeasurementVector(0));  // first cell
+      currCol[0] = pointWeights[0]*weightedEuclideanDist(tsI.getMeasurementVector(0), tsJ.getMeasurementVector(0), coordWeights);  // first cell
       for (int j=1; j<=maxJ; j++)  // the rest of the first column
-         currCol[j] = currCol[j-1] + pointWeights[j]*euclideanDist(tsI.getMeasurementVector(0), tsJ.getMeasurementVector(j));
+         currCol[j] = currCol[j-1] + pointWeights[j]*weightedEuclideanDist(tsI.getMeasurementVector(0), tsJ.getMeasurementVector(j), coordWeights);
       
       for (int i=1; i<=maxI; i++)   // i = columns
       {
@@ -69,13 +69,13 @@ public class ImprovedDTW
 
          // Calculate the value for the bottom row of the current column
          //    (i,0) = LocalCost(i,0) + GlobalCost(i-1,0)
-         currCol[0] = lastCol[0] + pointWeights[i]*euclideanDist(tsI.getMeasurementVector(i), tsJ.getMeasurementVector(0));
+         currCol[0] = lastCol[0] + pointWeights[i]*weightedEuclideanDist(tsI.getMeasurementVector(i), tsJ.getMeasurementVector(0), coordWeights);
 
          for (int j=1; j<=maxJ; j++)  // j = rows
          {
             // (i,j) = LocalCost(i,j) + minGlobalCost{(i-1,j),(i-1,j-1),(i,j-1)}
             final double minGlobalCost = Math.min(lastCol[j], Math.min(lastCol[j-1], currCol[j-1]));
-            currCol[j] = minGlobalCost + pointWeights[i]*euclideanDist(tsI.getMeasurementVector(i), tsJ.getMeasurementVector(j));
+            currCol[j] = minGlobalCost + pointWeights[i]*weightedEuclideanDist(tsI.getMeasurementVector(i), tsJ.getMeasurementVector(j), coordWeights);
             
             
             
@@ -136,8 +136,8 @@ public class ImprovedDTW
             final double minGlobalCost = Math.min(costMatrix[i-1][j],
                                                   Math.min(costMatrix[i-1][j-1],
                                                            costMatrix[i][j-1]));
-            costMatrix[i][j] = minGlobalCost + euclideanDist(tsI.getMeasurementVector(i),
-                                                             tsJ.getMeasurementVector(j));
+            costMatrix[i][j] = minGlobalCost + weightedEuclideanDist(tsI.getMeasurementVector(i),
+                                                             tsJ.getMeasurementVector(j), weights);
          }  // end for loop
       }  // end for loop
 
@@ -226,7 +226,7 @@ catch (Exception e)
 
 
 
-   public static double getWarpDistBetween(TimeSeries tsI, TimeSeries tsJ, SearchWindow window)
+   public static double getWarpDistBetween(TimeSeries tsI, TimeSeries tsJ, SearchWindow window, double[] coordWeights)
    {
       //     COST MATRIX:
       //   5|_|_|_|_|_|_|E| E = min Global Cost
@@ -253,15 +253,15 @@ catch (Exception e)
          final int j = currentCell.getRow();
 
          if ( (i==0) && (j==0) )      // bottom left cell (first row AND first column)
-            costMatrix.put(i, j, euclideanDist(tsI.getMeasurementVector(0), tsJ.getMeasurementVector(0)));
+            costMatrix.put(i, j, weightedEuclideanDist(tsI.getMeasurementVector(0), tsJ.getMeasurementVector(0), coordWeights));
          else if (i == 0)             // first column
          {
-            costMatrix.put(i, j, euclideanDist(tsI.getMeasurementVector(0), tsJ.getMeasurementVector(j)) +
+            costMatrix.put(i, j, weightedEuclideanDist(tsI.getMeasurementVector(0), tsJ.getMeasurementVector(j), coordWeights) +
                                  costMatrix.get(i, j-1));
          }
          else if (j == 0)             // first row
          {
-            costMatrix.put(i, j, euclideanDist(tsI.getMeasurementVector(i), tsJ.getMeasurementVector(0)) +
+            costMatrix.put(i, j, weightedEuclideanDist(tsI.getMeasurementVector(i), tsJ.getMeasurementVector(0), coordWeights) +
                                  costMatrix.get(i-1, j));
          }
          else                         // not first column or first row
@@ -269,8 +269,8 @@ catch (Exception e)
             final double minGlobalCost = Math.min(costMatrix.get(i-1, j),
                                                   Math.min(costMatrix.get(i-1, j-1),
                                                            costMatrix.get(i, j-1)));
-            costMatrix.put(i, j, minGlobalCost + euclideanDist(tsI.getMeasurementVector(i),
-                                                               tsJ.getMeasurementVector(j)));
+            costMatrix.put(i, j, minGlobalCost + weightedEuclideanDist(tsI.getMeasurementVector(i),
+                                                               tsJ.getMeasurementVector(j), coordWeights));
          }  // end if
       }  // end while loop
 
