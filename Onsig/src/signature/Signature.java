@@ -235,7 +235,7 @@ public class Signature {
     	this.totalPenDownTime = source.getTotalPenDownTime();
     	this.totalPenUpTime = source.getTotalPenUpTime();
     }
-
+    private double[] coordWeights;
 	/**
      * Létrehozza az aláírást a createTimeSeries metódus
      * meghívásával. Egy tömbben lehet megadni, hogy hanyadik oszlopok
@@ -245,9 +245,10 @@ public class Signature {
      * @param numOfPoints beolvasandó pontok száma
      * @param cols beolvasandó oszlopok
      */
-    public Signature(String file, int numOfPoints, int []cols) {
+    public Signature(String file, int numOfPoints, int []cols, double[] weights) {
         try {
         	this.fileName = file;
+        	this.coordWeights = weights;
             createTimeSeries(file, numOfPoints, cols);
         } catch (java.io.FileNotFoundException e) {
             System.out.println("Nincs ilyen file: " + file);
@@ -343,7 +344,7 @@ public class Signature {
                     currCol++;
                     continue;
                 } else if ( currCol == cols[whichColNeed] ) { //ezt be kell olvasni
-                    val[whichColNeed] = Double.parseDouble(token);
+                    val[whichColNeed] = Double.parseDouble(token)*coordWeights[whichColNeed];
                     currCol++;
                     whichColNeed++;
                 }

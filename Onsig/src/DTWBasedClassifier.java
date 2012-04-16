@@ -72,16 +72,16 @@ public class DTWBasedClassifier {
         File genuinedir = new File("../data-deriv/genuine/");   //eredeti fájlok
         String []forgedfiles = forgerydir.list();   //összes hamisított aláírás
         String []genuinefiles = genuinedir.list();  //összes valid aláírás
-        
+        double[] weights = {1.0,1.0,1.0};
         for ( int i = 0 ; i < forgedfiles.length ; i++ ) {
             if ( Pattern.matches("[0-9]*_"+signerId+"_[0-9]*.HWR", forgedfiles[i]) ) {
-                forgeryFiles.add(new Signature("../data-deriv/forgery/"+forgedfiles[i], numOfAttributes, cols));
+                forgeryFiles.add(new Signature("../data-deriv/forgery/"+forgedfiles[i], numOfAttributes, cols, weights));
             }
         }
 
         for ( int i = 0 ; i < genuinefiles.length ; i++ ) {
             if ( Pattern.matches(signerId+"_[1-9]^*[0-9]*.HWR", genuinefiles[i]) ) {
-                genuineFiles.add(new Signature("../data-deriv/genuine/"+genuinefiles[i], numOfAttributes, cols));
+                genuineFiles.add(new Signature("../data-deriv/genuine/"+genuinefiles[i], numOfAttributes, cols, weights));
             }
         }
     }
@@ -260,12 +260,12 @@ public class DTWBasedClassifier {
             try {
                 file = new PrintWriter(new FileOutputStream("output.txt"));
 
-                
-                final Signature testSignature = new Signature(args[0], numOfAttributes, cols);    //kinyerjük a tesztelendő aláírást
+                double[] weights = {1.0,1.0,1.0};
+                final Signature testSignature = new Signature(args[0], numOfAttributes, cols, weights);    //kinyerjük a tesztelendő aláírást
 
                 ArrayList<Signature> trainSignatures = new ArrayList<Signature>(args.length-1);   //tanító aláírások tömbje
                 for ( int i = 1 ; i < args.length ; i++ ) { //sorra vesszük a többi aláírást, amiből tanítóhalmazt építünk
-                    final Signature trainSignature = new Signature(args[i], numOfAttributes, cols);   //i. tanító aláírás
+                    final Signature trainSignature = new Signature(args[i], numOfAttributes, cols, weights);   //i. tanító aláírás
                     trainSignatures.add(i-1, trainSignature);   //beteszem a tanítóelemek közé
                 }
 

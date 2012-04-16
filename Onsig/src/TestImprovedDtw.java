@@ -45,8 +45,8 @@ public class TestImprovedDtw {
 	private static Signature readInSignature(String type, String name) {
 		if ( DEBUG )
 			System.out.println(name + " beolvasva");
-		
-		return new Signature("../data-deriv/" + type + "/" + name, cols.length, cols);
+		double[] tempweights = {1.0,1.0,1.0};
+		return new Signature("../data-deriv/" + type + "/" + name, cols.length, cols, tempweights);
 	}
 	
 	/**
@@ -118,28 +118,35 @@ public class TestImprovedDtw {
 			baseDir = args[0];
 		
 		double k = 2.0;	//a k paraméter kezdő értéke
-		double w = -100.0; //a w súly értéke alapból
+		double w = -2.5; //a w súly értéke alapból
 		double kStep = 0.1;
 		double lastK = k;
-		double wStep = 100.0;
-		double startK = 5.1; 
+		double wStep = 2.5;
+		double startK = 3.1;
+		int cycle = 0;
 		
 		String testTitle = "";
 		String fileName = "";
 		String dirName = "./results-long";
 		
 		while (true) {
-			w += wStep;	//léptetjük a w-t
-			//w = 1000.0;
-			//w = (Math.round(w*100)/100.0);	//hogy ne legyen nagyon sok tizedesjegy
+			//if ( cycle > 15 ) {
+			//	System.out.println("Vége a 15 ciklusnak.");
+			//	break;
+			//}
 			
-			if ( w > 1500.0 ) {
-				System.out.println("Vége.");
+			if ( w > 10.0 ) {
+				System.out.println("Elértük a max. súlyt");
 				break;
 			}
+				
+			w += wStep;	//léptetjük a w-t
+			w = (Math.round(w*100)/100.0);	//hogy ne legyen nagyon sok tizedesjegy
+			cycle++;
 			
 			//weights[0] = weights[1] = w;
 			//weights[2] = (3-2*w);
+			
 			weights[0] = weights[1] = 1.0;
 			weights[2] = w;
 			
@@ -155,12 +162,12 @@ public class TestImprovedDtw {
 			try {
 				PrintWriter pw1 = new PrintWriter(new FileOutputStream(dirName+"/eer"+fileName+".txt"));
 				PrintWriter pw2 = new PrintWriter(new FileOutputStream(dirName+"/roc"+fileName+".txt"));
-				
+				/*
 				PrintWriter dpw = new PrintWriter(new FileOutputStream("./distances.txt", true));
 				dpw.println("[" + weights[0] + "," + weights[1] + "," + weights[2] + "]");
 				dpw.flush();
 				dpw.close();
-				
+				*/
 				pw1.println(testTitle);
 				pw2.println(testTitle);
 				
@@ -181,9 +188,11 @@ public class TestImprovedDtw {
 					if ( k < 0.0 )
 						break;
 
+					System.out.println("k = " + k);
+					
 					//vizsgáljuk meg az összes aláírót
-					//for ( int i = 1 ; i <= 16 ; i++ ) {
-					int i = 1;
+					for ( int i = 1 ; i <= 16 ; i++ ) {
+					//int i = 1;
 						
 						String userId = "0" + i;
 						if ( i < 10 )
@@ -203,8 +212,10 @@ public class TestImprovedDtw {
 						
 						//l jelöli, hogy most épp hanyadik tesztelést hajtjuk végre
 						for ( int l = 0 ; l < testSetRate ; l++ ) {
+						
 							//System.out.println((k+1) + " tanítás.");
 							ArrayList<Signature> usersSig = readUserValidSignatures(userId);
+							
 							
 							ImprovedTrainingSet train = new ImprovedTrainingSet(weights);	//teszthalmaz létrehozása
 							
@@ -221,27 +232,26 @@ public class TestImprovedDtw {
 							}
 							
 							train.makeTemplates();
-							
-							dpw.println(train.getAverageDistance() + " " + train.getDistanceDeviation());
-							dpw.flush();
-							
+														
 							FastDTWClassifier classifier = new FastDTWClassifier(train);
 							
 							for ( Signature ts : test ) {
+								double decision = classifier.classify(ts, k);
+								if ( decision == -1 ) 
+									continue;
+								
 								posTestNumber++;
-								boolean decision = classifier.classify(ts, k);
-								if ( !decision ) {
+								if ( decision == 0 ) {
 									FRR++;
 									fn++;
-								} else {
+								} else if ( decision == 1 ) {
 									tp++;
 								}
 							}
 							for ( Signature ts : forgery ) {
 								negTestNumber++;
-								boolean decision = classifier.classify(ts, k);
-								
-								if ( decision ) {
+								double decision = classifier.classify(ts, k);
+								if ( decision == 1 ) {
 									FAR++;
 									fp++;
 								} else {
@@ -249,7 +259,7 @@ public class TestImprovedDtw {
 								}
 							}
 						}
-					//}
+					}
 					
 					//double frr = (FRR*100/(double)posTestNumber);
 					//double far = (FAR*100/(double)negTestNumber);
@@ -265,9 +275,7 @@ public class TestImprovedDtw {
 					
 					//if ( frr == far )
 					//	break;
-					
 
-					
 					//if ( frr < far ) {
 
 					//} else {

@@ -233,9 +233,10 @@ public class TemplateSignature extends Signature {
 				//System.out.println(delta + " " + this.maxDev[i] + " " + (delta/maxDev[i]));
 				
 				if ( this.maxDev[i] == 0 )
-					this.pointWeights.get(i)[j] = 0.0;	//ha 0 a legnagyobb szórás, akkor nagyon konzisztensnek vesszük a pontot (mivel valószínű hogy csak egy aláírásból készült a template)
+					this.pointWeights.get(i)[j] = 1.0;	//ha 0 a legnagyobb szórás, akkor nagyon konzisztensnek vesszük a pontot (mivel valószínű hogy csak egy aláírásból készült a template)
 				else
 					this.pointWeights.get(i)[j] = sigmoid(delta,this.maxDev[i],1.2);
+				
 				
 				//System.out.println(this.pointWeights.get(i)[j]);
 				

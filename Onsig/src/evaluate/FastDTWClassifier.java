@@ -15,7 +15,7 @@ public class FastDTWClassifier {
 		this.trainingSet = trainingSet;
 	}
 	
-	public boolean classify(signature.Signature s,double k) {
+	public double classify(signature.Signature s,double k) {
 		double distance = trainingSet.calcDistanceFrom(s);
 		double avgDist = trainingSet.getAverageDistance();
 		double avgDev = trainingSet.getDistanceDeviation();
@@ -28,11 +28,13 @@ public class FastDTWClassifier {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		if ( distance == Double.MAX_VALUE )
+			return -1;
 		//ha a távolság nagyobb a küszöbértéknél, akkor elutasítjuk az aláírást
 		if ( distance > threshold )
-			return false;
+			return 0;
 		
-		return true;
+		return 1;
 	}
 	
 	

@@ -1,0 +1,48 @@
+#!/usr/bin/env python2
+
+import os
+import matplotlib
+import math
+matplotlib.use('Agg') # No X
+import matplotlib.pyplot as plt
+from numpy import array, append, std, mean
+
+data_dir = "../data-deriv/genuine"
+
+def plotfile(fname, name):
+  print "Plotting %s",name
+  
+  t = array([])
+  x = array([])
+  y = array([])
+  z = array([])
+
+  # Gather data into numpy arrays.
+  with open(fname) as f:
+    lines = f.readlines()
+    linenum = -1
+    for line in lines:
+      linenum += 1
+      w = line.split()
+      t = append(t, linenum)
+      x = append(x, float(w[6]))
+      y = append(y, float(w[7]))
+      z = append(z, float(w[8]))
+      
+  # Labels.
+  plt.xlabel('time')
+  plt.ylabel('value')
+  plt.title("Data")
+  plt.ylim([0,1000])
+
+  # Plot and save as a png.
+  plt.plot(t, x, c="red")
+  plt.plot(t, y, c="green")
+  plt.plot(t, z, c="blue")
+  plt.savefig("../plots/dataplot/genuine/second_deriv/" + name + ".png")
+  plt.close()
+  
+for datafile in os.listdir(data_dir):
+  if datafile == "global.data" :
+    continue;
+  plotfile(data_dir+"/"+datafile, datafile)
