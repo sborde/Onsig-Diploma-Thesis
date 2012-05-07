@@ -15,23 +15,25 @@ public class ImprovedTrainingSet {
 	/**
 	 * Egy aláíróhoz tartozó összes aláírás.
 	 */
-	ArrayList<Signature> signatures;
+	private ArrayList<Signature> signatures;
 	
 	/**
 	 * Aláírások szakaszok száma szerint szétválogatva.
 	 */
-	Map<Integer, ArrayList<Signature>> sigsByStrokeNum;
+	private Map<Integer, ArrayList<Signature>> sigsByStrokeNum;
 	
 	/**
 	 * Eltárolja az egyes aláírások távolságát a hozzá
 	 * tartozó templatetől.
 	 */
-	Map<Integer, ArrayList<Double>> sigDistanceByStrokeNum;
+	private Map<Integer, ArrayList<Double>> sigDistanceByStrokeNum;
 	
 	/**
 	 * Template aláírások szakaszok száma szerint indexelve.
 	 */
-	Map<Integer, TemplateSignature> templates;
+	private Map<Integer, TemplateSignature> templates;
+	
+	private GlobalTemplateSignature globalTemplate;
 	
 	/**
 	 * Az egyes koordináták súlyai a template számításkor.
@@ -42,11 +44,39 @@ public class ImprovedTrainingSet {
 	 * Az aláírások átlagos eltérése a saját templatejüktől.
 	 */
 	private double averageDistance;
+	
+	/**
+	 * Az aláírások globális vizsgálatakor kapott átlagos távolságok.
+	 */
+	private double globalAverageDistance;
+	
+	/**
+	 * Az aláírások globális vizsgálatakor kapott átlagos szórások.
+	 */
+	private double globalDistanceDeviation;
 		
 	/**
 	 * Az aláírások távolságának átlagos szórása a saját templatejüktől.
 	 */
 	private double distanceDeviation;
+
+	
+	
+	public double getGlobalAverageDistance() {
+		return globalAverageDistance;
+	}
+
+	public void setGlobalAverageDistance(double globalAverageDistance) {
+		this.globalAverageDistance = globalAverageDistance;
+	}
+
+	public double getGlobalDistanceDeviation() {
+		return globalDistanceDeviation;
+	}
+
+	public void setGlobalDistanceDeviation(double globalDistanceDeviation) {
+		this.globalDistanceDeviation = globalDistanceDeviation;
+	}
 
 	public double getAverageDistance() {
 		return averageDistance;
@@ -114,6 +144,7 @@ public class ImprovedTrainingSet {
 	 */
 	public void makeTemplates() {
 			Set<Integer> strokeNumbers = sigsByStrokeNum.keySet();	//lekérjük a szakasz darabszámokat
+			int signatureAverageLength = 0;	//globális aláírás idő átlag
 			for ( Integer sn : strokeNumbers ) {
 				
 				ArrayList<Signature> signs = sigsByStrokeNum.get(sn);	//lekérjük az ennyi szakaszból álló aláírásokat
@@ -141,6 +172,22 @@ public class ImprovedTrainingSet {
 				t.calculatePointConsistency();
 				t.calculatePointWeights();
 			} 
+			
+			
+			for (Signature sig : signatures )	//teljes idő átlaga
+				signatureAverageLength += sig.getWholeSignature().size();
+			
+			signatureAverageLength /= signatures.size();
+			
+			signatures.get(0).resampleWholeSignature(signatureAverageLength);
+			globalTemplate = new GlobalTemplateSignature(this.coordWeights);
+			
+			for (Signature sig : signatures )	//teljes idő átlaga
+				globalTemplate.addSignature(sig);
+			
+			globalTemplate.calculatePointConsistency();
+			globalTemplate.calculatePointWeights();
+			
 			
 			calcAverageDistance();
 			calcDistanceDeviation();
@@ -197,29 +244,38 @@ public class ImprovedTrainingSet {
 	public double calcDistanceFrom(Signature s) {
 		double distance = 0.0;
 		int testSignatureSegmentCount = s.numberOfSegments();
-		/* Ha nincs ennyi szakaszból álló aláírás, akkor nincs több dolgunk, elutasítjuk. */
-		if ( !this.templates.containsKey(testSignatureSegmentCount) ) 
-			return Double.MAX_VALUE;
-		
 		int testSignaturePenDownTime = s.getTotalPenDownTime();	//lekérjük még újramintavételezés előtt az egyes időket
 		int testSignaturePenUpTime = s.getTotalPenUpTime();
 		int testSignatureTotalTime = s.getTotalTime();
-	          
-		//Szegmensenként kell számítani a távolságot, majd a végén ezeket összegezni.
-		for ( int i = 0 ; i < testSignatureSegmentCount ; i++ ) {
-			if ( !s.isPendownSegment(i) )	//az algoritmusunk csak az író szakaszokat veszi figyelembe
-				continue;
+		/* Ha nincs ennyi szakaszból álló aláírás, akkor a globális templatehez hasonlítom. */
+		if ( !this.templates.containsKey(testSignatureSegmentCount) ) {
+			GlobalTemplateSignature template = this.globalTemplate;	//aktuális template, amihez hasonlítok
+			int newLength = template.getWholeSignature().size();	//aláírás mérete, ami szerint újra kell mintavételezni
 			
-			TemplateSignature template = this.templates.get(testSignatureSegmentCount);	//aktuális template, amihez hasonlítok
-			int newLength = template.getSegment(i).size();	//szegmens mérete, ami szerint újra kell mintavételezni
-			
-			s.resampleSegment(i, newLength);	//újramintavételezzük a kapott aláírást
-			double segmentDistance = com.dtw.ImprovedDTW.getWarpDistBetween(template.getSegment(i), s.getSegments().get(i), this.coordWeights, template.getSegmentPointWeightsArray(i));	//a szegmens távolsága
+			s.resampleWholeSignature(newLength);	//újramintavételezzük a kapott aláírást
+			double segmentDistance = com.dtw.ImprovedDTW.getWarpDistBetween(template.getWholeSignature(), s.getWholeSignature(), this.coordWeights, template.getPointWeightsArray());	//a szegmens távolsága
 			double factor = (Math.abs(testSignatureTotalTime-template.getTotalTime())) / (double)template.getTotalTime();	//szegmens távolsága az írási idők figyelembe vételével
 			
 			segmentDistance *= (1+factor);
 			
-			distance += segmentDistance;	//az össz távolságot frissítjük
+			distance += segmentDistance;	//az össz távolságot frissítjük			
+		} else {
+			//Szegmensenként kell számítani a távolságot, majd a végén ezeket összegezni.
+			for ( int i = 0 ; i < testSignatureSegmentCount ; i++ ) {
+				if ( !s.isPendownSegment(i) )	//az algoritmusunk csak az író szakaszokat veszi figyelembe
+					continue;
+				
+				TemplateSignature template = this.templates.get(testSignatureSegmentCount);	//aktuális template, amihez hasonlítok
+				int newLength = template.getSegment(i).size();	//szegmens mérete, ami szerint újra kell mintavételezni
+				
+				s.resampleSegment(i, newLength);	//újramintavételezzük a kapott aláírást
+				double segmentDistance = com.dtw.ImprovedDTW.getWarpDistBetween(template.getSegment(i), s.getSegments().get(i), this.coordWeights, template.getSegmentPointWeightsArray(i));	//a szegmens távolsága
+				double factor = (Math.abs(testSignatureTotalTime-template.getTotalTime())) / (double)template.getTotalTime();	//szegmens távolsága az írási idők figyelembe vételével
+				
+				segmentDistance *= (1+factor);
+				
+				distance += segmentDistance;	//az össz távolságot frissítjük
+			}
 		}
 		return distance;
 	}

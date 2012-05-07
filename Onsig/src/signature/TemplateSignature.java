@@ -235,7 +235,9 @@ public class TemplateSignature extends Signature {
 				if ( this.maxDev[i] == 0 )
 					this.pointWeights.get(i)[j] = 1.0;	//ha 0 a legnagyobb szórás, akkor nagyon konzisztensnek vesszük a pontot (mivel valószínű hogy csak egy aláírásból készült a template)
 				else
-					this.pointWeights.get(i)[j] = sigmoid(delta,this.maxDev[i],1.2);
+					//this.pointWeights.get(i)[j] = sigmoid(delta,this.maxDev[i],1.2);
+					this.pointWeights.get(i)[j] = linear(delta,this.maxDev[i]);
+					
 				
 				
 				//System.out.println(this.pointWeights.get(i)[j]);
@@ -267,8 +269,8 @@ public class TemplateSignature extends Signature {
 			}
 	}
 
-	public static double linear(double x) {
-		return (-0.05*x)+1.0;
+	public static double linear(double x,double normv) {
+		return (x/-normv)+1.0;
 	}
 	
 	/**

@@ -156,27 +156,26 @@ public class Signature {
     }
     
     /**
-     * Egy szegmens újramintavételezését végzi. A köztes pontok
-     * számításához a két végpontot használja fel, és a távolságukkal
-     * arányosan számolja őket.
-     * @param index szegmens sorszáma
-     * @param newLength új szegmens hossza
+     * Paraméterben kapott idősort újramintavételezi.
+     * @param segment újramintavételezendő idősor
+     * @param newLength új hossz
+     * @return az új idősor
      */
-    public void resampleSegment(int index, int newLength) {
+    public TimeSeries resampleGivenSegment(TimeSeries segment, int newLength) {
 
     	/* Ha megegyezik a két szakasz hossza, akkor nem kell újramintavételezni. */
     	//if ( newLength == this.segments.get(index).numOfPts() ) 
     		//return;
     	
-        double sampleRate = (this.segments.get(index).numOfPts()-1) / (double)(newLength-1);    //mintavételezési ráta, a 0. pont mindig a helyén marad, így azt nem számoljuk 
+        double sampleRate = (segment.numOfPts()-1) / (double)(newLength-1);    //mintavételezési ráta, a 0. pont mindig a helyén marad, így azt nem számoljuk 
         double lambda, egyMinusLambda;  //lambda és 1-lambda
                 
-        com.timeseries.TimeSeries segmentToResample = this.segments.get(index); //az újramintavételezni kívánt szegmens
+        com.timeseries.TimeSeries segmentToResample = segment; //az újramintavételezni kívánt szegmens
         int dimension = segmentToResample.numOfDimensions();    //egy pontban hány érték van
         com.timeseries.TimeSeries segmentResampled = new com.timeseries.TimeSeries(dimension);  //ez lesz az újramintavételezett szegmens
 
         if (segmentToResample.size() == 0) {
-        	return;
+        	return segment;
         }
         
         int i = 0;  //ez halad az új tömbön
@@ -208,7 +207,26 @@ public class Signature {
             i++;
             j += sampleRate;
         }
-        this.segments.set(index, segmentResampled); //cserélem a szegmenst
+        return segmentResampled;
+    }
+    
+    /**
+     * Egy szegmens újramintavételezését végzi. A köztes pontok
+     * számításához a két végpontot használja fel, és a távolságukkal
+     * arányosan számolja őket.
+     * @param index szegmens sorszáma
+     * @param newLength új szegmens hossza
+     */
+    public void resampleSegment(int index, int newLength) {
+        this.segments.set(index, resampleGivenSegment(this.segments.get(index), newLength)); //cserélem a szegmenst
+    }
+    
+    /**
+     * A teljes aláírást újramintavételezi.
+     * @param newLength az aláírás új hossza
+     */
+    public void resampleWholeSignature(int newLength) {
+    	this.wholeSignature = resampleGivenSegment(this.wholeSignature, newLength);
     }
 
     /**

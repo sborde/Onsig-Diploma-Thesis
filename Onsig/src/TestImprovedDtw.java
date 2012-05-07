@@ -118,16 +118,16 @@ public class TestImprovedDtw {
 			baseDir = args[0];
 		
 		double k = 2.0;	//a k paraméter kezdő értéke
-		double w = -2.5; //a w súly értéke alapból
+		double w = 0.0; //a w súly értéke alapból
 		double kStep = 0.1;
 		double lastK = k;
 		double wStep = 2.5;
-		double startK = 3.1;
+		double startK = 4.1;
 		int cycle = 0;
 		
 		String testTitle = "";
 		String fileName = "";
-		String dirName = "./results-long";
+		String dirName = "./results-long/linear/";
 		
 		while (true) {
 			//if ( cycle > 15 ) {
@@ -135,7 +135,7 @@ public class TestImprovedDtw {
 			//	break;
 			//}
 			
-			if ( w > 10.0 ) {
+			if ( w > 2.5 ) {
 				System.out.println("Elértük a max. súlyt");
 				break;
 			}
@@ -185,7 +185,7 @@ public class TestImprovedDtw {
 					k -= kStep;	//léptetjük a k-t
 					k = (Math.round(k*100)/100.0);	//hogy ne legyen nagyon sok tizedesjegy
 					
-					if ( k < 0.0 )
+					if ( k < 3.1 )
 						break;
 
 					System.out.println("k = " + k);
