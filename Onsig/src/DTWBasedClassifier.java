@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 import evaluate.DTWClassifier;
 import signature.Signature;
-import training.TrainingSignature;
+import training.TrainingSet;
 
 /**
  * Improved DTW algoritmust használó aláírás
@@ -135,7 +135,7 @@ public class DTWBasedClassifier {
             double frr = testSignatures.size();   //alapból feltesszük, hogy minden helyesen helyesnek fogad el
             threshold = globalThreshold;   //küszöbérték
 
-            TrainingSignature trainingSet = new TrainingSignature(trainSignatures, 0);
+            TrainingSet trainingSet = new TrainingSet(trainSignatures, 0);
             DTWClassifier classifier = new DTWClassifier(trainingSet, threshold);
 
             for ( int j = 0 ; j < testSignatures.size() ; j++ ) {
@@ -269,7 +269,7 @@ public class DTWBasedClassifier {
                     trainSignatures.add(i-1, trainSignature);   //beteszem a tanítóelemek közé
                 }
 
-                TrainingSignature trainingSet = new TrainingSignature(trainSignatures, 0);    //létrehozom a tanítóhalmazt 0 ablakmérettel (ez az automatikus beállítás)
+                TrainingSet trainingSet = new TrainingSet(trainSignatures, 0);    //létrehozom a tanítóhalmazt 0 ablakmérettel (ez az automatikus beállítás)
 
                 DTWClassifier classifier = new DTWClassifier(trainingSet, threshold);   //készítek egy osztályozót
 

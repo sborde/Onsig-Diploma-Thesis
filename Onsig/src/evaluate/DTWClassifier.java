@@ -4,7 +4,7 @@ import com.timeseries.TimeSeries;
 import com.dtw.TimeWarpInfo;
 import java.util.ArrayList;
 
-import training.TrainingSignature;
+import training.TrainingSet;
 
 /**
  * Alaírás osztályozó. DTW algoritmust
@@ -15,7 +15,7 @@ import training.TrainingSignature;
  */
 public class DTWClassifier {
     /* Tanítóhalmaz. */
-    private TrainingSignature genuine;
+    private TrainingSet genuine;
 
     /** A döntés típusa: minimális érték szerinti. */
     public static int MIN = 0;
@@ -35,7 +35,7 @@ public class DTWClassifier {
      * @param g tanítóhalmaz
      * @param th küszöb együttható
      */
-    public DTWClassifier(TrainingSignature g, double th) {
+    public DTWClassifier(TrainingSet g, double th) {
         this.genuine = g;
         this.threshold = th;
     }

@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 
-import training.TrainingSignature;
+import training.TrainingSet;
 
 
 /**

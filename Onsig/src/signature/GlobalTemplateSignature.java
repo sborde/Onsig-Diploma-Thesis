@@ -195,8 +195,8 @@ public class GlobalTemplateSignature extends Signature {
 			if ( this.maxDev == 0 )
 				this.pointWeights[j] = 1.0;	//ha 0 a legnagyobb szórás, akkor nagyon konzisztensnek vesszük a pontot (mivel valószínű hogy csak egy aláírásból készült a template)
 			else
-				//this.pointWeights.get(i)[j] = sigmoid(delta,maxDev,1.2);
-				this.pointWeights[j] = linear(delta,maxDev);
+				this.pointWeights[j] = sigmoid(delta,maxDev,1.2);
+				//this.pointWeights[j] = linear(delta,maxDev);
 
 		}
 	}

@@ -1,0 +1,12 @@
+Független teszthalmaz esetén eredmények
+001 global: 0.0 0.1818181818181818
+002 global: 0.0 0.0
+003 global: 0.0 0.0
+004 global: 0.0 0.0
+006 global: 0.0 0.0
+009 global: 0.0 0.0
+012 global: 0.0 0.08333333333333333
+014 global: 0.125 0.0
+015 global: 0.0 0.0
+016 global: 0.0 0.0
+Átlag az összes userre: 0.0125 0.026515151515151516
