@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import evaluate.ImprovedDTWClassifier;
@@ -131,11 +132,13 @@ public class ImprovedDtwBasedClassifier {
 			return null;
 		
 		int permutation = userFiles.size()/testSetSize;
+		Collections.shuffle(userFiles);	//összekeverjük, hogy véletlenszerű legyen
 		
 		for ( int k = 0 ; k < permutation ; k++ ) {
 			ArrayList<ArrayList<String>> toOutput = new ArrayList<ArrayList<String>>();
-			Collections.shuffle(userFiles);	//összekeverjük, hogy véletlenszerű legyen
 			
+			testSet = new ArrayList<String>();
+			trainSet = new ArrayList<String>();
 			for ( int i = 0 ; i < testSetSize ; i++ ) {	//beolvassuk az első n. darab aláírást a kevert listából
 	            testSet.add(userFiles.get(i));
 	        }
@@ -245,7 +248,7 @@ public class ImprovedDtwBasedClassifier {
 			baseDir = args[0];
 		
 		weights = new double[3];
-		boolean istest = true;
+		boolean istest = false;
 		if ( istest ){
 			
 			weights[0] = weights[1] = 1.0;
@@ -296,14 +299,15 @@ public class ImprovedDtwBasedClassifier {
 		double k = 2.0;	//a k paraméter kezdő értéke
 		double w = 0.0; //a w súly értéke alapból
 		double kStep = 0.1;
-		double lastK = k;
 		double wStep = 2.5;
-		double startK = 4.1;
+		double startK = 4.2;
+		double threshold = 0.0;
+		double lastK = startK;
 		int cycle = 0;
 		
 		String testTitle = "";
 		String fileName = "";
-		String dirName = "./results-long/sigmoid_wo_test/";
+		String dirName = "./results-long/sigmoid_w_test_2/";
 		
 		while (true) {
 			//if ( cycle > 15 ) {
@@ -311,7 +315,9 @@ public class ImprovedDtwBasedClassifier {
 			//	break;
 			//}
 			
-			if ( w > 2.5 ) {
+			Map<Double, double[]> results = new TreeMap<Double, double[]>();
+			
+			if ( w > 0.0 ) {
 				System.out.println("Elértük a max. súlyt");
 				break;
 			}
@@ -331,10 +337,11 @@ public class ImprovedDtwBasedClassifier {
 			
 			System.out.println("Súlyok: [" + weights[0] + "," + weights[1] + "," + weights[2] + "]");
 			
-			ArrayList<ArrayList<String>> testSetsForUsers = new ArrayList<ArrayList<String>>(17);
+			/* Az i. helyen található egy listákat tartalmazó lista. A j. lista a j. user aláírásait tartalmazza. */
+			Map<Integer, ArrayList<ArrayList<String>>> trainingByIter = new HashMap<Integer, ArrayList<ArrayList<String>>>(3);
+			Map<Integer, ArrayList<ArrayList<String>>> testByIter = new HashMap<Integer, ArrayList<ArrayList<String>>>(3);
+			
 			ArrayList<ArrayList<String>> trainSetsForUsers = new ArrayList<ArrayList<String>>(17);
-			testSetsForUsers.add(null);		//a 0. indexre teszünk egy üres halmazt
-			trainSetsForUsers.add(null);	//a 0. indexre teszünk egy üres halmazt
 
 			for ( int i = 1 ; i <= 16 ; i++ ) {
 				String userId = "0" + i;
@@ -342,142 +349,175 @@ public class ImprovedDtwBasedClassifier {
 					userId = "0" + userId;
 				
 				ArrayList<ArrayList<ArrayList<String>>> testAndTrains = readInTestSet(userId, 8);
-				ArrayList<ArrayList<String>> testAndTrain = testAndTrains.get(0); 
-				if ( testAndTrain == null ) {
-					testSetsForUsers.add(null);
-					trainSetsForUsers.add(null);
-					continue;
-				}
-				testSetsForUsers.add(testAndTrain.get(0));
-				trainSetsForUsers.add(testAndTrain.get(1));
-			}
-			
-			try {
-				PrintWriter pw1 = new PrintWriter(new FileOutputStream(dirName+"/eer"+fileName+".txt"));
-				PrintWriter pw2 = new PrintWriter(new FileOutputStream(dirName+"/roc"+fileName+".txt"));
-		
-				pw1.println(testTitle);
-				pw2.println(testTitle);
+				for ( int m = 0 ; m < 3 ; m++ ) {
+					if ( trainingByIter.get(m) == null ) {	//ha még nem hoztunk létre erre az iterációra halmazt, tegyük meg
+						trainingByIter.put(new Integer(m), new ArrayList<ArrayList<String>>(17));
+						trainingByIter.get(m).add(null);	//feltöltjük a 0. helyet null-al, hogy könnyebb legyen kezelni
+					}
+					
+					if ( testByIter.get(m) == null ) {	//ha még nem hoztunk létre erre az iterációra halmazt, tegyük meg
+						testByIter.put(new Integer(m), new ArrayList<ArrayList<String>>(17));
+						testByIter.get(m).add(null);	//feltöltjük a 0. helyet null-al, hogy könnyebb legyen kezelni
+					}
+					
+					if ( testAndTrains == null ) {	//ha nincs ilyen aláírónk, akkor az aktuális iteráció helyére null-t tegyünk
+						trainingByIter.get(m).add(null);
+						testByIter.get(m).add(null);
+						continue;
+					}
 				
-				while (true) {
-					int FRR = 0;
-					int FAR = 0;
-					int posTestNumber = 0;
-					int negTestNumber = 0;
-					
-					int tp = 0;
-					int tn = 0;
-					int fp = 0;
-					int fn = 0;
-					
-					k -= kStep;	//léptetjük a k-t
-					k = (Math.round(k*100)/100.0);	//hogy ne legyen nagyon sok tizedesjegy
-					
-					if ( k < 1.0 )
-						break;
+					ArrayList<ArrayList<String>> testAndTrain = testAndTrains.get(m); 
 
-					System.out.println("k = " + k);
-					
-					//vizsgáljuk meg az összes aláírót
-					for ( int i = 1 ; i <= 16 ; i++ ) {
-					
-						
-						String userId = "0" + i;
-						if ( i < 10 )
-							userId = "0" + userId;
+					testByIter.get(m).add(testAndTrain.get(0));	//az m. helyen lévő listába szúrjuk be a listát
+					trainingByIter.get(m).add(testAndTrain.get(1));
+				}
+			}
+			for ( int m = 0 ; m < 3 ; m++ ) {	//végigvesszük az összes lehetséges teszthalmaz választást
+				try {
+					PrintWriter pw1 = new PrintWriter(new FileOutputStream(dirName+"/eer"+fileName+"_"+m+".txt"));
+					PrintWriter pw2 = new PrintWriter(new FileOutputStream(dirName+"/roc"+fileName+"_"+m+".txt"));
 			
-						if ( trainSetsForUsers.get(i) == null )	//nincs ilyen aláírónk 
-							continue;
+					pw1.println(testTitle);
+					pw2.println(testTitle);
+					
+					while (true) {
+						int FRR = 0;
+						int FAR = 0;
+						int posTestNumber = 0;
+						int negTestNumber = 0;
 						
-						int numberOfSignatures = trainSetsForUsers.get(i).size();	//egyébként lekérjük a darabszámot
+						int tp = 0;
+						int tn = 0;
+						int fp = 0;
+						int fn = 0;
 						
-			
-						int numberOfTrainingSet = numberOfSignatures / testSetRate;
+						k -= kStep;	//léptetjük a k-t
+						k = (Math.round(k*100)/100.0);	//hogy ne legyen nagyon sok tizedesjegy
 						
-						/*System.out.println(testSetRate + " részre osztjuk a " + (i+1) + ". aláíró valós aláírások halmazát, tehát egy halmazba a " + 
-										numberOfSignatures + " db. aláírásbó " + numberOfTrainingSet + " db. kerül");*/
+						if ( k < 1.0 )
+							break;
+	
+						System.out.println("k = " + k);
 						
-						ArrayList<Signature> forgery = readUserForgedSignatures(userId);	//az aktuálisan vizsgált személy hamisításai
+						//vizsgáljuk meg az összes aláírót
+						for ( int i = 1 ; i <= 16 ; i++ ) {
 						
-						//l jelöli, hogy most épp hanyadik validálást hajtjuk végre
-						for ( int l = 0 ; l < testSetRate ; l++ ) {
-						
-							//System.out.println((k+1) + " tanítás.");
-							ArrayList<Signature> usersSig = readInSpecificValidSignatures((trainSetsForUsers.get(i)));
 							
+							String userId = "0" + i;
+							if ( i < 10 )
+								userId = "0" + userId;
+				
+							if ( getSignaturesNumber(userId) == 0 )	//nincs ilyen aláírónk 
+								continue;
 							
-							ImprovedTrainingSet train = new ImprovedTrainingSet(weights);	//tanítóhalmaz létrehozása
+							int numberOfSignatures = trainingByIter.get(m).get(i).size();	//egyébként lekérjük a darabszámot
 							
-							ArrayList<Signature> test = new ArrayList<Signature>();	//validáló aláírások gyűjtőhelye
-							for ( int j = 0 ; j < usersSig.size() ; j++ ) {
-								Signature s = usersSig.get(j);
-								s.reset();	//visszaállítjuk mindig az eredeti állapotra az aláírást
-								if ( j < l*numberOfTrainingSet || j >= (l+1)*numberOfTrainingSet ) {
-									train.addSignature(s);
-								} else {
-									test.add(s);
-								}
-							}
+				
+							int numberOfTrainingSet = numberOfSignatures / testSetRate;
+							ArrayList<Signature> forgery = readUserForgedSignatures(userId);	//az aktuálisan vizsgált személy hamisításai
 							
-							train.makeTemplates();
-														
-							ImprovedDTWClassifier classifier = new ImprovedDTWClassifier(train);
-							
-							for ( Signature ts : test ) {
-								double decision = classifier.classify(ts, k);
-								if ( decision == -1 ) 
-									continue;
+							//l jelöli, hogy most épp hanyadik validálást hajtjuk végre
+							for ( int l = 0 ; l < testSetRate ; l++ ) {
+								ArrayList<Signature> usersSig = readInSpecificValidSignatures((trainingByIter.get(m).get(i)));
 								
-								posTestNumber++;
-								if ( decision == 0 ) {
-									FRR++;
-									fn++;
-								} else if ( decision == 1 ) {
-									tp++;
+								ImprovedTrainingSet train = new ImprovedTrainingSet(weights);	//tanítóhalmaz létrehozása
+								
+								ArrayList<Signature> test = new ArrayList<Signature>();	//validáló aláírások gyűjtőhelye
+								
+								for ( int j = 0 ; j < usersSig.size() ; j++ ) {
+									Signature s = usersSig.get(j);
+									s.reset();	//visszaállítjuk mindig az eredeti állapotra az aláírást
+									if ( j < l*numberOfTrainingSet || j >= (l+1)*numberOfTrainingSet ) {
+										train.addSignature(s);
+									} else {
+										test.add(s);
+									}
 								}
-							}
-							for ( Signature ts : forgery ) {
-								negTestNumber++;
-								double decision = classifier.classify(ts, k);
-								if ( decision == 1 ) {
-									FAR++;
-									fp++;
-								} else {
-									tn++;
+								
+								train.makeTemplates();
+								ImprovedDTWClassifier classifier = new ImprovedDTWClassifier(train);
+								
+								for ( Signature ts : test ) {
+									double decision = classifier.classify(ts, k);
+									if ( decision == -1 ) 
+										continue;
+									
+									posTestNumber++;
+									if ( decision == 0 ) {
+										FRR++;
+										fn++;
+									} else if ( decision == 1 ) {
+										tp++;
+									}
+								}
+								for ( Signature ts : forgery ) {
+									negTestNumber++;
+									double decision = classifier.classify(ts, k);
+									if ( decision == 1 ) {
+										FAR++;
+										fp++;
+									} else {
+										tn++;
+									}
 								}
 							}
 						}
+						
+						double frr = (double)fn / (fn+tp);
+						double far = (double)fp / (fp+tn);
+						
+						double[] farr = {frr, far};
+						results.put(new Double(k), farr);
+						
+						//pw1.println(k + " " + frr + " " + far);
+						//pw2.println(k + " " + ((double)tp/(tp+fn)) + " " + ((double)fp/(tn+fp)));
+			
+						//pw1.flush();
+						//pw2.flush();
+						
 					}
 					
-					//double frr = (FRR*100/(double)posTestNumber);
-					//double far = (FAR*100/(double)negTestNumber);
-					double frr = (double)fn / (fn+tp);
-					double far = (double)fp / (fp+tn);
-					//System.out.println(k + " " + (FRR*100/(double)posTestNumber) + " " + (FAR*100/(double)negTestNumber));
+					double index = Math.round((startK-kStep)*10)/10.0;	//kiszámítjuk a legnagyobb k értéket
+					double[] farrr = results.get(index);
+					int lastSignum = (int)Math.signum(farrr[0]-farrr[1]);	//és a legelső irányt
+					double lastAvg = 0.0;	//az előző esetben a két hiba átlaga (ezt tekintjük majd EER-nek)
+					double EER = 0.0;		//ez lesz a közelített EER
 					
-					pw1.println(k + " " + frr + " " + far);
-					pw2.println(k + " " + ((double)tp/(tp+fn)) + " " + ((double)fp/(tn+fp)));
-		
+					for ( Map.Entry<Double, double[]> e : results.entrySet()) {
+						int signum = (int)Math.signum(e.getValue()[0] - e.getValue()[1]);	//melyik a nagyobb
+						double avg = (e.getValue()[0] + e.getValue()[1])/2;					//a két hiba átlaga
+						if ( signum != lastSignum ) {	//ha megfordult az egyenlőtlenség iránya, akkor itt az EER (magában foglalja az egyenlőséget)
+							EER = (lastAvg + avg) / 2;	// a két szomszédos EER átlaga
+							threshold = (e.getKey()+lastK)/2;
+							System.out.println("Úgy találtam, hogy az EER " + EER + " az ehhez tartozó threshold pedig " + threshold);
+						}
+						lastSignum = (int)Math.signum(e.getValue()[0] - e.getValue()[1]);
+						lastAvg = avg;
+						lastK = e.getKey();
+						pw1.println(e.getKey() + " " + e.getValue()[0] + " " + e.getValue()[1]);
+						System.out.println(e.getKey() + " " + e.getValue()[0] + " " + e.getValue()[1]);
+					}
+					PrintWriter pw = new PrintWriter(new FileOutputStream(w+"_test_error_"+m+".txt"));
+					for ( int i = 1 ; i <= 16 ; i++ ) {
+						String userId = "0" + i;
+						if ( i < 10 )
+							userId = "0" + userId;
+						
+						double []error = runTest(testByIter.get(m).get(i), readUserForgedSignatures(userId), trainingByIter.get(m).get(i), threshold);
+						pw.println(error[0] + " " + error[1]);
+					}
+					
 					pw1.flush();
 					pw2.flush();
+					pw.flush();
+					pw1.close();
+					pw2.close();
+					pw.close();
 					
-					//if ( frr == far )
-					//	break;
-
-					//if ( frr < far ) {
-
-					//} else {
-						//step /= 2;
-						//k += step;
-					//}
-					//System.out.println("Összesen " + posTestNumber + " helyes esetből " + FRR + " esetben hibázott. Ez " + (FRR*100/(double)posTestNumber) + "% eredmény.");
-					//System.out.println("Összesen " + negTestNumber + " hamis esetből " + FAR + " esetben hibázott. Ez " + (FAR*100/(double)negTestNumber) + "% eredmény.");
-				
+					
+				} catch (IOException e ){
+					e.printStackTrace();
 				}
-				pw1.close();
-				pw2.close();
-			} catch (IOException e ){
-				e.printStackTrace();
 			}
 		}
 	}
