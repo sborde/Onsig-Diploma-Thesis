@@ -1,15 +1,23 @@
 package training;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import signature.*;
+import signature.GlobalTemplateSignature;
+import signature.Signature;
+import signature.TemplateSignature;
 
+/**
+ * A továbbfejlesztett DTW algoritmus számára egy tanítóhalmazt reprezentál, 
+ * valamint megvalósítja a rajtuk végrehajtható műveleteket. Eltárolja a 
+ * tanuló mintákat, kiszámítja belőlük a sablon értékét, illetve a döntéshez
+ * szükséges adatokat (átlagos távolság és szórás). A távolságszámításba
+ * beleveszi az írási időket, szakaszszámokat.
+ * @author sborde
+ *
+ */
 public class ImprovedTrainingSet {
 	
 	/**
@@ -33,6 +41,11 @@ public class ImprovedTrainingSet {
 	 */
 	private Map<Integer, TemplateSignature> templates;
 	
+	/**
+	 * Ha nincs megegyező szakaszszámú sablon, akkor globálisan illeszti
+	 * a kapott aláírást. Ehhez teljesen hasonlóan hoz létre egy sablont,
+	 * csak itt egy szakasz lesz: a teljes aláírás.
+	 */
 	private GlobalTemplateSignature globalTemplate;
 	
 	/**
@@ -60,32 +73,60 @@ public class ImprovedTrainingSet {
 	 */
 	private double distanceDeviation;
 
-	
-	
+	/**
+	 * Visszaadja a globális templatetől vett átlagos távolságot.
+	 * @return távolság értéke
+	 */
 	public double getGlobalAverageDistance() {
 		return globalAverageDistance;
 	}
 
+	/**
+	 * Beállítja a globális átlagos távolság értékét.
+	 * @param globalAverageDistance az új érték
+	 */
 	public void setGlobalAverageDistance(double globalAverageDistance) {
 		this.globalAverageDistance = globalAverageDistance;
 	}
 
+	/**
+	 * Visszaadja a globális átlagos távolság értékét.
+	 * @return távolság
+	 */
 	public double getGlobalDistanceDeviation() {
 		return globalDistanceDeviation;
 	}
 
+	/**
+	 * Beállítja a globális átlagos szórás értékét.
+	 * @param globalDistanceDeviation új érték
+	 */
 	public void setGlobalDistanceDeviation(double globalDistanceDeviation) {
 		this.globalDistanceDeviation = globalDistanceDeviation;
 	}
 
+	/**
+	 * Lekéri a átlagos távolság értékét.
+	 * @return távolság értéke
+	 */
 	public double getAverageDistance() {
 		return averageDistance;
 	}
 
+	/**
+	 * Lekéri a átlagos szórás értékét.
+	 * @return szórás értéke
+	 */
 	public double getDistanceDeviation() {
 		return distanceDeviation;
 	}
 
+	/**
+	 * Konstruktor, mely létrehozza a szükséges konténekeret.
+	 * Paraméterben csak az egyes koordináták súlyát várja, 
+	 * minden már menet közben derül ki.
+	 * @param coordWeights koordináta súlyok
+	 */
 	public ImprovedTrainingSet(double[] coordWeights) {
 		signatures = new ArrayList<Signature>();
 		templates = new HashMap<Integer, TemplateSignature>();
@@ -128,15 +169,6 @@ public class ImprovedTrainingSet {
 		/* Itt is csak egyszer szerepeljen. */
 		if ( !sigsByStrokeNum.get(strokenum).contains(s) )
 			sigsByStrokeNum.get(strokenum).add(s);
-	}
-	
-	/**
-	 * Az aláírások ömlesztett listáját szétválogatja szakaszok száma szerint.
-	 */
-	private void sortSignatures() {
-		for ( Signature s : signatures ) {			
-			putToSegmentedList(s);
-		}
 	}
 	
 	/**
@@ -247,6 +279,7 @@ public class ImprovedTrainingSet {
 		int testSignaturePenDownTime = s.getTotalPenDownTime();	//lekérjük még újramintavételezés előtt az egyes időket
 		int testSignaturePenUpTime = s.getTotalPenUpTime();
 		int testSignatureTotalTime = s.getTotalTime();
+		
 		/* Ha nincs ennyi szakaszból álló aláírás, akkor a globális templatehez hasonlítom. */
 		if ( !this.templates.containsKey(testSignatureSegmentCount) ) {
 			GlobalTemplateSignature template = this.globalTemplate;	//aktuális template, amihez hasonlítok
@@ -258,7 +291,8 @@ public class ImprovedTrainingSet {
 			
 			segmentDistance *= (1+factor);
 			
-			distance += segmentDistance;	//az össz távolságot frissítjük			
+			distance += segmentDistance;	//az össz távolságot frissítjük
+			//distance = Double.MAX_VALUE;
 		} else {
 			//Szegmensenként kell számítani a távolságot, majd a végén ezeket összegezni.
 			for ( int i = 0 ; i < testSignatureSegmentCount ; i++ ) {

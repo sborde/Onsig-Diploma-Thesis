@@ -1,12 +1,15 @@
 package signature;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 
 import com.dtw.WarpPath;
 
+/**
+ * Egy globális sablon aláírást megvalósító osztály. Működése teljesen hasonló 
+ * a szakaszonkénti sablontól, csak itt a teljes aláírást kell kezelni.
+ * @author sborde
+ *
+ */
 public class GlobalTemplateSignature extends Signature {
 
 	/**
@@ -49,12 +52,20 @@ public class GlobalTemplateSignature extends Signature {
 	 */
 	private double maxDev;
 	
-	
-	
+	/**
+	 * Lekéri egy adott szegmens pontjainak súlyait tartalmazó tömböt.
+	 * @param i szegmens sorszáma
+	 * @return súlyok tömbje
+	 */
 	public double[] getPointWeightsArray() {
 		return pointWeights;
 	}
-
+	
+	/**
+	 * Létrehoz egy sablonaláírást, mely alapból üres. Eltárolja 
+	 * az egyes koordináták súlyait.
+	 * @param weights súlyok
+	 */
 	public GlobalTemplateSignature(double[] weights) {
 		super();
 		signatures = new ArrayList<Signature>();
@@ -190,7 +201,6 @@ public class GlobalTemplateSignature extends Signature {
 			}
 			
 			double delta = Math.abs(this.avgd.get(j) - this.avgd.get(j-1));	//a két szórás különbsége
-			//System.out.println(delta + " " + this.maxDev[i] + " " + (delta/maxDev[i]));
 			
 			if ( this.maxDev == 0 )
 				this.pointWeights[j] = 1.0;	//ha 0 a legnagyobb szórás, akkor nagyon konzisztensnek vesszük a pontot (mivel valószínű hogy csak egy aláírásból készült a template)
@@ -201,21 +211,26 @@ public class GlobalTemplateSignature extends Signature {
 		}
 	}
 
-
+	/**
+	 * Lineáris súlyozást megvalósító függvény. Kap egy x értéket
+	 * és egy hosszúságot, majd egy lenormalizált egyenesről leolvassa 
+	 * az értéket.
+	 * @param x keresett érték
+	 * @param normv intervallum hossza
+	 * @return leolvasott érték
+	 */
 	public static double linear(double x,double normv) {
 		return (x/-normv)+1.0;
 	}
 	
-	/**
-	 * Egy csökkenő szigmoid függvény, amit a súlyozáshoz használhatunk.
-	 * Minél kisebb az ugrás, annál jobb az érték, tehát a 0 legyen 1. 
-	 * @param x függvény hely
-	 * @return szigmoid értéke
-	 */
-	public static double sigmoid(double x) {
-			 return (1/( 1 + (Math.pow(Math.E,(1*(x-0.5))))));
-	}
 	
+	/**
+	 * Egy szigmoid függvény, különböző paraméterekkel. 
+	 * @param x keresett függvényhely
+	 * @param normV tartomány hossza
+	 * @param sharpness élesség
+	 * @return keresett érték
+	 */
 	public static double sigmoid(double x, double normV, double sharpness) {
 		  x=(x/normV*2-1)*5*sharpness;
 		  return 1.0 / (1.0 + Math.exp(x));

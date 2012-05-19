@@ -1,7 +1,5 @@
 package signature;
 
-import com.timeseries.TimeSeries;
-import com.timeseries.TimeSeriesPoint;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -10,6 +8,9 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
+import com.timeseries.TimeSeries;
+import com.timeseries.TimeSeriesPoint;
+
 /**
  * Beolvassa egy aláírás adatpontjait fájlból,
  * de csak meghatározott oszlopokat vesz figyelembe.
@@ -17,6 +18,9 @@ import java.util.StringTokenizer;
  */
 public class Signature {
 
+	/**
+	 * Fájl neve, ahonnan beolvastuk.
+	 */
 	protected String fileName;
 	
     /**
@@ -50,8 +54,10 @@ public class Signature {
      */
     protected int totalPenUpTime;
 
-    
-    
+    /**
+     * Visszaadja a tároló fájl nevét.
+     * @return fájlnév
+     */
     public String getFileName() {
 		return fileName;
 	}
@@ -388,12 +394,6 @@ public class Signature {
                 this.totalPenUpTime += segments.get(i).numOfPts();
         }
 
-        /*System.out.println("Number of segments: " + segments.size());
-        System.out.println("Legth of segments': ");
-        for ( int i = 0 ; i < segments.size() ; i++ ) {
-            System.out.println((i+1) + ". szegmens: " + segments.get(i).numOfPts() + " " + segmentPenUp.get(i));
-        }*/
-        //System.out.println(wholeSignature.numOfPts());
         filein.close();
     }
 
